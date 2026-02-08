@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fantasy Keeper Picker (Restricted)</title>
+  <style>
+    /* Apply Dialog brand colors */
+    :root {
+      --dialog-dark: #0A1F3D;
+      --dialog-primary: #55A7F5;
+      --dialog-white: #FFFFFF;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--dialog-dark);
+      color: var(--dialog-white);
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: var(--dialog-white);
+      color: var(--dialog-dark);
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    h1 {
+      margin-top: 0;
+      color: var(--dialog-primary);
+      font-size: 28px;
+      text-align: center;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    select:disabled {
+      color: #aaa;
+    }
+    .cost-info p {
+      font-style: italic;
+      color: #555;
+      margin: 4px 0;
+    }
+    button {
+      background-color: var(--dialog-primary);
+      color: var(--dialog-dark);
+      border: none;
+      border-radius: 4px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: var(--dialog-dark);
+      color: var(--dialog-primary);
+    }
+    #downloadLink {
+      display: none;
+      margin-top: 15px;
+      margin-left: 10px;
+      color: var(--dialog-primary);
+      text-decoration: none;
+      font-weight: bold;
+    }
+    #downloadLink:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Fantasy Keeper Picker</h1>
+    <p>Select your team and three eligible keepers. Ineligible players (due to draft rules) are not available in the dropdowns. After submission your email client will open with your picks addressed to the commissioner.</p>
+    <label for="teamSelect">Select Fantasy Team</label>
+    <select id="teamSelect">
+      <option value="">-- Select a Team --</option>
+    </select>
+    <div id="keepersSection" style="display:none;">
+      <label for="keeper1">Keeper 1</label>
+      <select id="keeper1"><option value="">-- Select Player --</option></select>
+      <label for="keeper2">Keeper 2</label>
+      <select id="keeper2"><option value="">-- Select Player --</option></select>
+      <label for="keeper3">Keeper 3</label>
+      <select id="keeper3"><option value="">-- Select Player --</option></select>
+      <div id="costInfo" class="cost-info" style="margin-top: 10px;">
+        <p id="keeper1Info"></p>
+        <p id="keeper2Info"></p>
+        <p id="keeper3Info"></p>
+      </div>
+      <button id="submitBtn" type="button">Submit</button>
+      <a id="downloadLink" href="#" download="keepers.csv">Download CSV</a>
+    </div>
+  </div>
+  <script>
+    // Commissioner email hard-coded
+    const COMM_EMAIL = 'mpetrillo2890@gmail.com';
+    // Roster data: copy from previous file
+    const roster = {
+      "Acuna Matata": ["Bryce Harper","Bryson Stott","Ceddanne Rafaela","Chad Patrick","Christian Walker","Jazz Chisholm Jr.","Jeff Hoffman","Jesús Luzardo","José Ramírez","Randy Arozarena","Ronald Acuña Jr.","Sandy Alcantara","Shohei Ohtani (Batter)","Taylor Ward","Trevor Megill","Tyler Glasnow","Will Smith","Zac Gallen"],
+      "Bigly Chew": ["Aaron Nola","Carlos Rodón","Dansby Swanson","Gavin Sheets","Ivan Herrera","Jake Irvin","Jo Adell","Jordan Beck","Ke'Bryan Hayes","Maikel Garcia","Michael King","Noah Schultz","Paul Goldschmidt","Sal Frelick","Seth Lugo","Shane Bieber","Shohei Ohtani (Pitcher)"],
+      "Cincinnati Condoms": ["Aaron Judge","Bryan Abreu","Bryan Woo","Bryce Miller","Chase Burns","Cristopher Sánchez","Daniel Palencia","Drew Rasmussen","Garrett Whitlock","Gavin Williams","Gleyber Torres","Hunter Greene","Isaac Collins","Jacob Lopez","Jacob deGrom","Jason Alexander","Joey Ortiz","Jonathan India","Jurickson Profar","Justin Verlander","Kerry Carpenter","Kyle Finnegan","Logan Evans","Logan Gilbert","Luis Castillo","Mason Miller","Matt McLain","Max Scherzer","Mike Burrows","Noah Cameron","Paul DeJong","Paul Skenes","Ramón Laureano","Ranger Suárez","Ryan O'Hearn","Spencer Steer","Willson Contreras","Willy Adames","Yandy Díaz"],
+      "Dan 2 SuperStars": ["Abner Uribe","Adley Rutschman","Adrian Morejon","Andre Pallante","Andrew Painter","Braxton Ashcraft","Brayan Bello","Bubba Chandler","Cade Horton","Carlos Correa","Carlos Estévez","Cedric Mullins","David Bednar","Dillon Dingler","Edwin Díaz","Geraldo Perdomo","Ian Happ","Jacob Wilson","Jakob Marsee","Jameson Taillon","Janson Junk","Jason Adam","Jeffrey Springs","Jung Hoo Lee","Kyle Stowers","Logan Allen","Lourdes Gurriel Jr.","MacKenzie Gore","Marcell Ozuna","Michael Busch","Myles Straw","Quinn Priester","Raisel Iglesias","Robert Suarez","Roman Anthony","Samuel Basallo","Tyler Rogers","Vinnie Pasquantino","Xavier Edwards","Zack Littell","Zebby Matthews"],
+      "Duran Duran": ["Andrés Muñoz","Anthony Volpe","Ben Rice","Camilo Doval","Colson Montgomery","Giancarlo Stanton","Hurston Waldrep","Jake Cronenworth","Jarren Duran","Jeremy Peña","Jhoan Duran","Kyle Teel","Luis Gil","M. Lorenzen (Pitcher)","Michael Harris II","Nico Hoerner","Pete Crow-Armstrong","Roki Sasaki","TJ Friedl"],
+      "Kurtz so Good": ["Alec Bohm","Andrew Vaughn","Brandon Lowe","Byron Buxton","Cade Povich","Casey Mize","Corbin Carroll","Dylan Crews","George Springer","Landen Roupp","Luis Robert Jr.","Luis Severino","Matt Shaw","Nick Castellanos","Nick Kurtz","Salvador Perez","Sonny Gray","Taijuan Walker","Zach Neto"],
+      "Power Outage": ["Brent Rooker","Cam Schlittler","Christian Yelich","Eugenio Suárez","Francisco Lindor","Jack Flaherty","Jose Quintana","Ketel Marte","Kyle Schwarber","Logan Henderson","Max Meyer","Michael Soroka","Mick Abel","Mitch Keller","Noelvi Marte","Tanner Bibee","Trent Grisham","Tyler Soderstrom","Yainer Diaz"],
+      "Soto my sweet sweet prince": ["Andy Pages","Brenton Doyle","JP Sears","Jac Caglianone","Jack Leiter","Jackson Chourio","Jackson Holliday","Jordan Westburg","Josh Naylor","José Soriano","Juan Soto","Junior Caminero","Max Muncy","Nick Martinez","Otto Lopez","Patrick Corbin","Royce Lewis","Shea Langeliers","Yordan Alvarez"],
+      "The Evil Empire": ["Andrew Abbott","Anthony Santander","Blake Snell","Brady Singer","Brandon Nimmo","Chandler Simpson","Chris Sale","Clay Holmes","Colin Rea","David Peterson","Dylan Cease","Edward Cabrera","Eric Lauer","Garrett Crochet","George Kirby","Gerrit Cole","Hunter Gaddis","J.T. Ginn","Jacob Misiorowski","Jeremiah Jackson","Johan Oviedo","Kyle Tucker","Lawrence Butler","Luis Arraez","Marcus Semien","Matt Chapman","Matthew Liberatore","Max Fried","Michael McGreevy","Mike Yastrzemski","Mookie Betts","Rafael Devers","Robby Snelling","Ryan Mountcastle","Ryan Pepiot","Shane Smith","Tomoyuki Sugano","Tony Gonsolin","Trea Turner","Trevor Rogers","William Contreras","Wilyer Abreu","Yu Darvish"],
+      "The Untouchable Azns": ["Agustín Ramírez","Aroldis Chapman","Brice Turang","Bryce Elder","Cade Smith","Daylen Lile","Elly De La Cruz","Heliot Ramos","Hunter Goodman","Jonah Tong","Nolan McLean","Jorge Polanco","Luis Morales","Ozzie Albies","Riley Greene","Shota Imanaga","Spencer Torkelson","Vladimir Guerrero Jr.","Wyatt Langford"],
+      "Woodshed": ["Adrian Houser","Alex Bregman","Bailey Ober","Bo Bichette","Brandon Woodruff","Bryan Reynolds","CJ Abrams","Cal Raleigh","Chris Bassitt","Cody Bellinger","Cole Ragans","Devin Williams","Fernando Tatis Jr.","Framber Valdez","Freddy Peralta","Jackson Merrill","James Wood","Javier Assad","Joey Cantillo","Jose A. Ferrer","José Caballero","Kevin Gausman","Lenyn Sosa","Logan Webb","Lucas Giolito","Mark Vientos","Matt Olson","Matthew Boyd","Michael Wacha","Nathan Eovaldi","Nick Lodolo","Nick Pivetta","Pablo López","Robbie Ray","S. Schwellenbach","Sebastian Walcott","Seiya Suzuki","Spencer Jones","Spencer Strider","Steven Kwan","Tarik Skubal","Thomas White","Tony Santillan","Trevor Story","Will Vest","Will Warren"],
+      "and…and TWINS !": ["Bobby Witt Jr.","Cade Cavalli","Corey Seager","Freddie Freeman","Gunnar Henderson","J.T. Realmuto","Joe Ryan","Jose Altuve","Josh Lowe","Julio Rodríguez","Kodai Senga","Kris Bubic","Manny Machado","Max Kepler","Merrill Kelly","Nolan McLean","Pete Alonso","Ryne Nelson","Tylor Megill","Yoshinobu Yamamoto"]
+    };
+    // History arrays for cost rules
+    const keep2025 = [ ["Gunnar Henderson","Julio Rodriguez","Paul Skenes"], ["Kyle Schwarber","Chris sale","Shota imanaga"], ["Mark Vientos","Junior Caminero","Jared Jones"], ["Dylan Cease","Adley Rutschman","Christian walker"], ["Shohei Ohtani (Pitcher)","Michael Busch","Matt Chapman"], ["Spencer Strider","Jackson Merrill","Tarik Skubal"], ["Garret Crochet","Pablo Lopez","Ketel Marte"], ["Sho time Ohtani","Corby Carrol","Houck Tua"], ["Jordan Westburg","Michael Harris","Jazz Chisholm"], ["Elly De La Cruz","Royce Lewis","Jung"], ["Jarron duran","Tanner Bibee","Volpe"], ["Cunter Greene","Brenton Doyle","Bryan woo"] ];
+    const keep2024 = [ ["Josh Jung","Elly De La Cruz","Royce Lewis"], ["Jackson Merrill","Sonny Gray","Tarik Skubal"], ["Pablo Lopez","Hunter Greene","Christian Walker"], ["Corbin Carroll","Spencer strider","Julio Rodriguez"], ["Gunnar","Eury Perez","Grayson Rodriguez"], ["Adley","Martian","Horner"], ["Bobby Miller","Andrew Abbott","Brayan Bello"], ["Fernando tatis jr","Tanner bibee","Anthony Volpe"], ["Jackson Churio Stud","Ohtani Stud","Bryson stott stud"], ["Francisco Alvarez","Spencer Steer","Cristian Javier"], ["Michael Harris","Tyler Glassnow","Jazz Chisholm"], ["Schwarbombs","Walker buhler","Vinny pasquintino"] ];
+    function norm(name) { return name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+    // Build history map
+    const history = (function(){ const set25=new Set(); const set24=new Set(); keep2025.forEach(t=>t.forEach(n=>set25.add(norm(n)))); keep2024.forEach(t=>t.forEach(n=>set24.add(norm(n)))); const hist={}; set25.forEach(n=>{ hist[n]=1; }); set25.forEach(n=>{ if(set24.has(n)) hist[n]=2; }); return hist;})();
+    // Draft lookup mapping: normalized player name -> original draft round (from 2025 draft results)
+    // This object is generated by parsing the commissioner-provided draft results.
+    // Normalization removes spaces, punctuation, and diacritics, and lowercases the name.
+    const draftMap = {
+        'aaronjudge': 1,
+        'bobbywittjr': 1,
+        'juansoto': 1,
+        'joseramirez': 1,
+        'kyletucker': 1,
+        'fernandotatisjr': 1,
+        'bryceharper': 1,
+        'mookiebetts': 1,
+        'yordanalvarez': 1,
+        'vladimirguerrerojr': 1,
+        'jacksonchourio': 1,
+        'franciscolindor': 1,
+        'freddiefreeman': 2,
+        'austinriley': 2,
+        'zackwheeler': 2,
+        'logangilbert': 2,
+        'rafaeldevers': 2,
+        'corbinburnes': 2,
+        'mattolson': 2,
+        'ronaldacunajr': 2,
+        'treaturner': 2,
+        'coleragans': 2,
+        'coreyseager': 2,
+        'mannymachado': 2,
+        'petealonso': 3,
+        'blakesnell': 3,
+        'oneilcruz': 3,
+        'ozziealbies': 3,
+        'dylancease': 3,
+        'cjabrams': 3,
+        'brentrooker': 3,
+        'tylerglasnow': 3,
+        'michaelking': 3,
+        'wyattlangford': 3,
+        'yoshinobuyamamoto': 3,
+        'teoscarhernandez': 3,
+        'josealtuve': 4,
+        'loganwebb': 4,
+        'aaronnola': 4,
+        'frambervaldez': 4,
+        'lawrencebutler': 4,
+        'williamcontreras': 4,
+        'baileyober': 4,
+        'maxfried': 4,
+        'jameswood': 4,
+        'hunterbrown': 4,
+        'anthonysantander': 4,
+        'jacobdegrom': 4,
+        'brycemiller': 5,
+        'marcussemien': 5,
+        'freddyperalta': 5,
+        'joshnaylor': 5,
+        'georgekirby': 5,
+        'mattmclain': 5,
+        'alexbregman': 5,
+        'codybellinger': 5,
+        'luiscastillo': 5,
+        'cristophersanchez': 5,
+        'justinsteele': 5,
+        'marcellozuna': 5,
+        'spencerschwellenbach': 6,
+        'zacgallen': 6,
+        'joeryan': 6,
+        'sonnygray': 6,
+        'rokisasaki': 6,
+        'willyadames': 6,
+        'jakeburger': 6,
+        'miketrout': 6,
+        'devinwilliams': 6,
+        'bobichette': 6,
+        'tristoncasas': 6,
+        'calraleigh': 6,
+        'sandyalcantara': 7,
+        'chrissale': 7,
+        'bryanreynolds': 7,
+        'joseberrios': 7,
+        'zacheflin': 7,
+        'dylancrews': 7,
+        'ketelmarte': 7,
+        'randyarozarena': 7,
+        'luisrobertjr': 7,
+        'rileygreene': 7,
+        'willsmith': 7,
+        'seiyasuzuki': 7,
+        'emmanuelclase': 8,
+        'jackflaherty': 8,
+        'vinniepasquantino': 8,
+        'jazzchisholmjr': 8,
+        'jassondominguez': 8,
+        'yainerdiaz': 8,
+        'brandonnimmo': 8,
+        'ezequieltovar': 8,
+        'ianhapp': 8,
+        'adolisgarcia': 8,
+        'luisgarciajr': 8,
+        'juliorodriguez': 8,
+        'robbieray': 9,
+        'carlosrodon': 9,
+        'kevingausman': 9,
+        'sethlugo': 9,
+        'luisarraez': 9,
+        'isaacparedes': 9,
+        'pablolopez': 9,
+        'kodaisenga': 9,
+        'salvadorperez': 9,
+        'masonmiller': 9,
+        'alecbohm': 9,
+        'willsoncontreras': 9,
+        'joshhader': 10,
+        'petecrowarmstrong': 10,
+        'xavieredwards': 10,
+        'shealangeliers': 10,
+        'shoheiohtanibatter': 10,
+        'reynaldolopez': 10,
+        'xanderbogaerts': 10,
+        'ryanpepiot': 10,
+        'edwindiaz': 10,
+        'jorgesoler': 10,
+        'shotaimanaga': 10,
+        'joshlowe': 10,
+        'gavinwilliams': 11,
+        'coltoncowser': 11,
+        'michaeltoglia': 11,
+        'christianwalker': 11,
+        'lanethomas': 11,
+        'nathaneovaldi': 11,
+        'juricksonprofar': 11,
+        'brandonpfaadt': 11,
+        'mackenziegore': 11,
+        'logano\'hoppe': 11,
+        'austinwells': 11,
+        'shanemcclanahan': 11,
+        'huntergreene': 12,
+        'nickpivetta': 12,
+        'briceturang': 12,
+        'tajbradley': 12,
+        'brysonstott': 12,
+        'christianyelich': 12,
+        'stevenkwan': 12,
+        'jacksonjobe': 12,
+        'taylorward': 12,
+        'nicklodolo': 12,
+        'yandydiaz': 12,
+        'jtrealmuto': 12,
+        'paulgoldschmidt': 13,
+        'kyleschwarber': 13,
+        'mattshaw': 13,
+        'yuseikikuchi': 13,
+        'andrewabbott': 13,
+        'dansbyswanson': 13,
+        'masynwinn': 13,
+        'jesusluzardo': 13,
+        'nickcastellanos': 13,
+        'brandonwoodruff': 13,
+        'andresmunoz': 13,
+        'kerrycarpenter': 13,
+        'bryanwoo': 14,
+        'eugeniosuarez': 14,
+        'maxscherzer': 14,
+        'jeremypena': 14,
+        'bowdenfrancis': 14,
+        'ryanmcmahon': 14,
+        'raiseliglesias': 14,
+        'tyleroneill': 14,
+        'andresgimenez': 14,
+        'lourdesgurrieljr': 14,
+        'clayholmes': 14,
+        'shanebaz': 14,
+        'ronelblanco': 15,
+        'spencerarrighetti': 15,
+        'walkerbuehler': 15,
+        'byronbuxton': 15,
+        'dustinmay': 15,
+        'chrisbassitt': 15,
+        'kumarrocker': 15,
+        'corbincarroll': 15,
+        'georgespringer': 15,
+        'joshjung': 15,
+        'anthonyvolpe': 15,
+        'spencersteer': 15,
+        'merrillkelly': 16,
+        'jarrenduran': 16,
+        'heliotramos': 16,
+        'seanmanaea': 16,
+        'maxmuncy': 16,
+        'mattwallner': 16,
+        'grantholmes': 16,
+        'michaelwacha': 16,
+        'ryanwalker': 16,
+        'jacksonholliday': 16,
+        'coltkeith': 16,
+        'larsnootbaar': 16,
+        'drewrasmussen': 17,
+        'felixbautista': 17,
+        'graysonrodriguez': 17,
+        'mattchapman': 17,
+        'reeseolson': 17,
+        'tommyedman': 17,
+        'rangersuarez': 17,
+        'michaelharrisii': 17,
+        'jeffreysprings': 17,
+        'nicohoerner': 17,
+        'nolanarenado': 17,
+        'gleybertorres': 18,
+        'tannerbibee': 18,
+        'clarkeschmidt': 18,
+        'ryanmountcastle': 18,
+        'justinverlander': 18,
+        'spencerstrider': 18,
+        'shoheiohtanipitcher': 18,
+        'adleyrutschman': 18,
+        'jaredjones': 18,
+        'trevormegill': 18,
+        'gunnarhenderson': 18,
+        'brandonlowe': 19,
+        'ryanpressly': 19,
+        'juniorcaminero': 19,
+        'cedricmullins': 19,
+        'michaelbusch': 19,
+        'tarikskubal': 19,
+        'davidpeterson': 19,
+        'andrewpainter': 19,
+        'rhyshoskins': 19,
+        'nestorcortes': 19,
+        'willwarren': 19,
+        'haydenbirdsong': 19,
+        'luisseverino': 20,
+        'mitchkeller': 20,
+        'roycelewis': 20,
+        'zachneto': 20,
+        'ryanhelsley': 20,
+        'krisbubic': 20,
+        'jacksonmerrill': 20,
+        'jjbleday': 20,
+        'bradysinger': 20,
+        'markvientos': 20,
+        'jordanromano': 20,
+        'paulskenes': 20,
+        'ellydelacruz': 21,
+        'justinmartinez': 21,
+        'romananthony': 21,
+        'christophermorel': 21,
+        'jhoanduran': 21,
+        'jonathanindia': 21,
+        'erickfedde': 21,
+        'tannerscott': 21,
+        'kuttercrawford': 21,
+        'jakecronenworth': 21,
+        'carloscorrea': 21,
+        'matthewboyd': 21,
+        'ceddannerafaela': 22,
+        'ajpuk': 22,
+        'jamesontaillon': 22,
+        'christianencarnacionstrand': 22,
+        'shanebieber': 22,
+        'garrettcrochet': 22,
+        'maxmeyer': 22,
+        'joeyortiz': 22,
+        'jpsears': 22,
+        'alecburleson': 22,
+        'ivanherrera': 22,
+        'camsmith': 22,
+        'euryperez': 23,
+        'jhonkensynoel': 23,
+        'cadepovich': 23,
+        'franciscoalvarez': 23,
+        'lucaserceg': 23,
+        'maikelgarcia': 23,
+        'jeffhoffman': 23,
+        'deyvisondelossantos': 23,
+        'robertsuarez': 23,
+        'aroldischapman': 23,
+        'garrettmitchell': 23,
+        'nickmartinez': 23,
+        'brentondoyle': 24,
+        'luisgil': 24,
+        'bubbachandler': 24,
+        'jakemccarthy': 24,
+        'tannerhouck': 24,
+        'jaccaglianone': 24,
+        'josesoriano': 24,
+        'shanesmith': 24,
+        'deankremer': 24,
+        'orionkerkering': 24,
+        'kylefinnegan': 24,
+        'jordanwestburg': 24
+    };
+    function calc(player) {
+      const n = norm(player);
+      const orig = draftMap[n] || 'UNKNOWN';
+      const years = history[n] || 0;
+      let cost='UNKNOWN'; let eligible='PENDING_DRAFT_LOOKUP'; let reason='Awaiting draft round data';
+      if (typeof orig === 'number') {
+        if (orig >=1 && orig <=3) { eligible='N'; reason='Drafted in rounds 1–3; cannot be kept'; cost=orig; }
+        else if (years>=2) {
+          if (orig>=4 && orig<=5) { eligible='N'; reason='Originally drafted in rounds 4–5; cannot be kept a second season'; cost=orig; }
+          else if (orig>=6 && orig<=12) { cost=orig-2; if (cost<=3) { eligible='N'; reason='Escalation pushes cost into rounds 1–3; ineligible'; } else { eligible='Y'; } }
+          else { cost=orig-3; if (cost<=3) { eligible='N'; reason='Escalation pushes cost into rounds 1–3; ineligible'; } else { eligible='Y'; } }
+        } else {
+          cost=orig; eligible='Y'; reason=''; }
+      }
+      return { orig, years, cost, eligible, reason };
+    }
+    // Initialize team dropdown
+    const teamSel = document.getElementById('teamSelect');
+    Object.keys(roster).sort().forEach(team=>{ const opt=document.createElement('option'); opt.value=team; opt.textContent=team; teamSel.appendChild(opt); });
+    const k1Sel=document.getElementById('keeper1'); const k2Sel=document.getElementById('keeper2'); const k3Sel=document.getElementById('keeper3');
+    const sec=document.getElementById('keepersSection'); const dl=document.getElementById('downloadLink');
+    teamSel.addEventListener('change', function(){ const team=this.value; if(team && roster[team]){ populate(team); sec.style.display='block'; dl.style.display='none'; } else { sec.style.display='none'; } });
+    [k1Sel,k2Sel,k3Sel].forEach(sel=> sel.addEventListener('change', ()=>{ updateDisables(); updateCosts(); }));
+    function populate(team){ const players=roster[team]; // Fill each select with eligible players only
+      function fill(sel){ while(sel.options.length>1){ sel.remove(1); }
+        players.forEach(p=>{
+          const info = calc(p);
+          // Add only eligible or unknown players
+          if (info.eligible === 'Y' || info.orig === 'UNKNOWN') {
+            const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o);
+          }
+        });
+        sel.selectedIndex=0;
+      }
+      fill(k1Sel); fill(k2Sel); fill(k3Sel);
+      updateDisables(); updateCosts();
+    }
+    function updateDisables(){ const selVals=[k1Sel.value,k2Sel.value,k3Sel.value].filter(Boolean);
+      [k1Sel,k2Sel,k3Sel].forEach(sel=>{
+        const cur=sel.value;
+        Array.from(sel.options).forEach(opt=>{
+          if(!opt.value) return;
+          opt.disabled= selVals.includes(opt.value) && opt.value !== cur;
+        });
+      });
+    }
+    function updateCosts(){ const picks=[k1Sel.value,k2Sel.value,k3Sel.value]; picks.forEach((pl,idx)=>{
+        const infoEl=document.getElementById(`keeper${idx+1}Info`);
+        if(pl){ const info=calc(pl); if(info.orig==='UNKNOWN'){ infoEl.textContent=`${pl}: Unknown (draft round not yet assigned).`; }
+          else if(info.eligible==='Y'){ infoEl.textContent=`${pl}: Round ${info.cost}`; }
+          else { infoEl.textContent=`${pl}: Ineligible – ${info.reason}`; }
+        } else { infoEl.textContent=''; }
+      }); }
+    function timestamp(){ const d=new Date(); const pad=n=>n.toString().padStart(2,'0'); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+    document.getElementById('submitBtn').addEventListener('click', function(){ const team=teamSel.value; const k1=k1Sel.value; const k2=k2Sel.value; const k3=k3Sel.value; if(!team){ alert('Please select a team.'); return; } if(!k1||!k2||!k3){ alert('Please select three different keepers.'); return; } if(new Set([k1,k2,k3]).size<3){ alert('Keepers must be unique.'); return; }
+      updateCosts(); const ts=timestamp(); const header='Team,Keeper1,Keeper2,Keeper3,Timestamp\n'; const row=`${team},${k1},${k2},${k3},${ts}`; const csv=header+row+'\n'; const uri='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); dl.href=uri; dl.setAttribute('download', `${team.replace(/[^a-z0-9]/gi,'_')}_${ts.replace(/[^0-9]/g,'')}.csv`); dl.style.display='inline-block';
+      // Compose mailto link and auto-open
+      const subject=`Keeper Submission - ${team}`; let body=''; body+=`Team: ${team}\n`; body+=`Keeper1: ${k1}\n`; body+=`Keeper2: ${k2}\n`; body+=`Keeper3: ${k3}\n`; body+=`Timestamp: ${ts}\n\n`; body+=`CSV Row:\n${header.trim()}${row}`;
+      const mailto=`mailto:${encodeURIComponent(COMM_EMAIL)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; window.location.href=mailto;
+    });
+  </script>
+</body>
+</html>
